@@ -1,0 +1,85 @@
+{
+  "token": "Njk4NjUxOTI4NzExNzkwNjc0.XpI8oA.3HU9AkAo7nXbkTJ9j4ESUXZtE7U",
+  "debugging": {
+    "debugging": false,
+    "screaming_channel": "767660775425703977"
+  },
+  "administrators": [
+    "317236321099710467",
+    "264184409047957514"
+  ],
+  "commandManager": {
+    "prefix": "."
+  },
+  "parameters": {
+    "hoist_offset": 5
+  },
+  "guilds": {
+    "537887361292304385": {
+      "queueChannel": "749051814795804762",
+      "captainPriority": [
+        {
+          "type": "ROLE",
+          "name": "Ignition Champions"
+        },
+        {
+          "type": "ROLE",
+          "name": "Radiant"
+        },
+        {
+          "type": "ROLE",
+          "name": "Immortal"
+        },
+        {
+          "type": "ROLE",
+          "name": "Diamond"
+        },
+        {
+          "type": "ROLE",
+          "name": "Platinum"
+        },
+        {
+          "type": "ROLE",
+          "name": "Gold"
+        },
+        {
+          "type": "ROLE",
+          "name": "@everyone"
+        }
+      ]
+    },
+    "767649315757752331": {
+      "queueChannel": "796977734400213003",
+      "captainPriority": [
+        {
+          "type": "ROLE",
+          "name": "Ignition Champions"
+        },
+        {
+          "type": "ROLE",
+          "name": "Radiant"
+        },
+        {
+          "type": "ROLE",
+          "name": "Immortal"
+        },
+        {
+          "type": "ROLE",
+          "name": "Diamond"
+        },
+        {
+          "type": "ROLE",
+          "name": "Platinum"
+        },
+        {
+          "type": "ROLE",
+          "name": "Gold"
+        },
+        {
+          "type": "ROLE",
+          "name": "@everyone"
+        }
+      ]
+    }
+  }
+}
