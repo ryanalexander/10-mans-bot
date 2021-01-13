@@ -1,5 +1,10 @@
+let app = require("../../app");
 
 module.exports = class {
+
+    snowflake = app.snowflake.generateSnowflake('GAME');
+    priority = [];
+
     constructor(guild, commandManager) {
         this.commandManager = commandManager;
         this.config = commandManager.getConfig()['guilds'][guild.id];
@@ -27,6 +32,10 @@ module.exports = class {
                 this.message.edit(this.embed);
                 this.queueMembersCached = [...this.queueMembers];
             }
+            this.priority.forEach(priorityPlayer => {
+                if(priorityPlayer.expires > (new Date()).getTime())
+                    this.priority = removeItemAll(this.priority, priorityPlayer);
+            })
         }, 1000);
     }
 
@@ -49,8 +58,13 @@ module.exports = class {
     handleReaction(reaction, user) {
         switch(reaction.emoji.name){
             case "✅":
-                if(this.queueMembers.indexOf(user.id) <= -1)
-                    this.queueMembers.push(user.id);
+                if(this.queueMembers.indexOf(user.id) <= -1) {
+                    if(this.priority.find(priorityPlayer => priorityPlayer.player === user.id)){
+                        this.queueMembers.unshift(user.id)
+                    }else {
+                        this.queueMembers.push(user.id);
+                    }
+                }
                 break;
             case "⛔":
                 if(this.queueMembers.indexOf(user.id) > -1)
@@ -67,6 +81,8 @@ module.exports = class {
 
         this.embed.setTitle("10 Mans Waiting List");
         this.embed.setColor("RED");
+
+        this.embed.setFooter("Bot by Aspy | "+this.snowflake)
 
         // TODO Actually put content in embed
 
@@ -91,7 +107,7 @@ function formatQueue(arr) {
     let result = "";
 
     for(var i = 0; i<arr.length&&i<20; i++)
-        result += "**"+(arr.indexOf(arr[i])+1)+" |** <@"+arr[i]+">\n"
+        result += ((i === 9)?"**!  |** __**Next game**__\n":"")+"**"+(arr.indexOf(arr[i])+1)+" |** <@"+arr[i]+">\n"
     if(arr.length > 20)
         result += `*and ${arr.length - 20} more*`
     if(result === "")
