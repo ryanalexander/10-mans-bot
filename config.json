@@ -14,6 +14,11 @@
   "parameters": {
     "hoist_offset": 5
   },
+  "database": {
+    "host": "108.61.168.90",
+    "user": "10mansbot",
+    "pass": "{password}"
+  },
   "guilds": {
     "537887361292304385": {
       "queueChannel": "749051814795804762",

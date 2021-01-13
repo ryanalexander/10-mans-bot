@@ -3,8 +3,10 @@ const Discord = require("discord.js");
 const fs = require("fs");
 
 const client = new Discord.Client;
-
 exports.discordClient = client;
+
+exports.snowflake = new (require('./bin/lib/Snowflake'))(0);
+exports.database = new (require('./bin/lib/Database'))();
 exports.config = JSON.parse(fs.readFileSync("./config.json"));
 exports.queuemap = {};
 exports.gamemap = [];

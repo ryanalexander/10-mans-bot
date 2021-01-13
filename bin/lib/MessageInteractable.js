@@ -70,7 +70,7 @@ module.exports = class {
         this.oncancel = oncancel;
         this.message = message;
         this.active = message.defaultsActive;
-        let Embed = new MessageEmbed({
+        let messageEmbed = new MessageEmbed({
             title: message.title[this.active?0:1],
             color: message.color,
             fields: {
@@ -80,9 +80,23 @@ module.exports = class {
             }
         });
 
-        channel.send(Embed).then(msg => {
+        if(message.description !== undefined) {
+            messageEmbed.description = message.description;
+            messageEmbed.fields = []
+        }
+
+        channel.send(messageEmbed).then(msg => {
             this.discordMessage = msg;
-            this.doRenderAction(message.fields);
+            if(messages.indexOf(msg.id) <= -1){
+                messages.push(msg.id);
+                intractable.push({
+                    message: msg.id,
+                    react: this.onreact,
+                    interact: this
+                });
+            }
+            if(message.fields !== undefined)
+                this.doRenderAction(message.fields);
         })
     }
 
@@ -117,14 +131,6 @@ module.exports = class {
 
         msg.edit(discordEmbed).then(null);
 
-        if(messages.indexOf(msg.id) <= -1){
-            messages.push(msg.id);
-            intractable.push({
-                message: msg.id,
-                react: this.onreact,
-                interact: this
-            });
-        }
         postActions.forEach(
             action => {
                 switch(action[0].action) {
@@ -155,6 +161,7 @@ app.discordClient.on('messageReactionAdd', (reaction, member)=>{
             interact.react(reaction);
     }
 });
+
 function removeItemAll(arr, value) {
     var i = 0;
     while (i < arr.length) {
