@@ -8,6 +8,7 @@ const GameStage = ['INITIALIZING', 'PLAYER_SELECTION', 'MAP_SELECTION', 'WAITING
 module.exports = class {
 
     id = Object.keys(app.gamemap).length;
+    snowflake = app.snowflake.generateSnowflake('GAME');
     category = 0;
     gamestage = 0;
     channels = {};
@@ -16,6 +17,7 @@ module.exports = class {
     invite = null;
     players = [];
     players_unassigned = [];
+    epoch = 0;
     map_pool = ['ASCENT', 'HAVEN', 'BIND', 'SPLIT', 'ICEBOX'];
     teams = [];
 
@@ -28,6 +30,7 @@ module.exports = class {
 
         app.gamemap.push(this);
 
+        this.epoch = (new Date()).getTime();
         this.guild = guild;
         this.players = players;
         this.players_unassigned = players;
@@ -35,7 +38,7 @@ module.exports = class {
         // Determine Captains
         let captains = this.#determineCaptains();
 
-        this.players_unassigned =removeItemAll(removeItemAll(this.players_unassigned, captains[0]), captains[1]);
+        this.players_unassigned = removeItemAll(removeItemAll(this.players_unassigned, captains[0]), captains[1]);
 
         // Create teams
         this.teams.push({
@@ -70,10 +73,13 @@ module.exports = class {
     cancel() {
         // Message players
         this.players.forEach(player => {
-            app.discordClient.users.resolve(player).send(new MessageEmbed().setColor("RED").setTitle("Your match has been cancelled").setDescription(`The game ${this.id} has been cancelled. You have been returned to the queue.`)).then(null);
+            app.discordClient.users.resolve(player).send(new MessageEmbed().setColor("RED").setTitle("Your match has been cancelled").setDescription(`The game ${this.id} has been cancelled. You have been returned to the queue.\n\n**If you re-queue within a minute you will be at the top**`).setFooter("Bot by Aspy | "+this.snowflake)).then(null);
 
             // Add players back to queue
-            app.queuemap[this.guild['id']].addToQueue(player);
+            app.queuemap[this.guild['id']].priority.push({
+                player: player,
+                expires: (new Date()).getTime(60000)
+            });
         });
         // Delete channels
         app.discordClient.channels.fetch(this.category).then(category => {
@@ -93,6 +99,7 @@ module.exports = class {
         let currentTeam = this.getTeam(player);
         if(currentTeam != null)
             currentTeam.players = removeItemAll(currentTeam.players, player.id);
+        this.players_unassigned = removeItemAll(player.id);
         this.teams[team].players.push(player.id);
     }
 
@@ -108,17 +115,50 @@ module.exports = class {
         }))
     }
 
+    addPlayer(player) {
+        this.players.push(player.id);
+        this.players_unassigned.push(player.id);
+    }
+    removePlayer(player) {
+        this.players = removeItemAll(this.players, player.id);
+        this.players_unassigned = removeItemAll(this.players_unassigned, player.id);
+    }
+
+    getSub() {
+        let member = app.queuemap[this.guild.id].getQueueMembers()[0]
+        app.queuemap[this.guild.id].removeFromQueue(member);
+        this.addPlayer(member);
+    }
+
     printv(channel) {
         let embed = new MessageEmbed().setTitle("Game debug");
         embed.addField("Category", "> "+this.id);
         embed.addField("Stage", "> "+GameStage[this.gamestage]);
         embed.addField("Maps", "> "+JSON.stringify(this.map_pool));
         embed.addField("Players", "> "+JSON.stringify(this.players));
+        embed.addField("Epoch", "> "+this.epoch);
+
+        embed.setFooter("Bot by Aspy | "+this.snowflake)
         this.teams.forEach(team => {
             embed.addField(team+ " Active Interaction", "> "+team.interact.discordMessage);
             embed.addField(team+" isActive", "> "+team.interact.discordMessage.active);
         });
         channel.send(embed);
+
+        console.log(JSON.stringify({
+            game_id: this.id,
+            snowflake: this.snowflake,
+            category: this.category,
+            gamestage: this.gamestage,
+            channels: Object.keys(this.channels),
+            map: this.map,
+            invite: this.invite,
+            players: this.players,
+            players_unassigned: this.players_unassigned,
+            epoch: this.epoch,
+            map_pool: this.map_pool,
+            teams: this.teams
+        }));
     }
 
     /**
@@ -147,6 +187,7 @@ module.exports = class {
                 embed.setColor("BLURPLE")
                 embed.addField("Captains", `**Team 1** <@${this.teams[0].captain.user.id}>\n**Team 2** <@${this.teams[1].captain.user.id}>`)
                 embed.addField("Players", formatPlayers(this.players))
+                embed.setFooter("Bot by Aspy | "+this.snowflake);
                 mainChannel.send(embed);
 
                 mainChannel.send(formatPlayers(this.players)).then(message => message.delete());
@@ -162,7 +203,7 @@ module.exports = class {
                 this.channels['team1'] = mainChannel;
                 this.teams[0].text_channel = mainChannel.id;
                 mainChannel.send(`<@${this.teams[0].captain.user.id}>`).then(message => message.delete());
-                mainChannel.send(new (require('discord.js')).MessageEmbed().setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&772519048251703356> for support.**"));
+                mainChannel.send(new (require('discord.js')).MessageEmbed().setFooter("Bot by Aspy | "+this.snowflake).setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&772519048251703356> for support.**"));
 
                 this.#doTeamSelection(mainChannel, 0);
             });
@@ -177,7 +218,7 @@ module.exports = class {
                 this.channels['team2'] = mainChannel;
                 this.teams[1].text_channel = mainChannel.id;
                 mainChannel.send(`<@${this.teams[1].captain.user.id}>`).then(message => message.delete());
-                mainChannel.send(new MessageEmbed().setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&772519048251703356> for support.**"));
+                mainChannel.send(new MessageEmbed().setFooter("Bot by Aspy | "+this.snowflake).setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&772519048251703356> for support.**"));
 
                 this.#doTeamSelection(mainChannel, 1);
             })
@@ -244,7 +285,6 @@ module.exports = class {
                     this.teams[1].interact.cancel();
                     this.gamestage = 2;
 
-                    this.setTeam(this.players_unassigned)
                     reaction.message.guild.members.fetch(this.players_unassigned[0]).then(member => {
                         this.setTeam(member, team===0?1:0);
                     });
@@ -288,21 +328,26 @@ module.exports = class {
             fields: this.map_pool,
             modules: ['MAP_SELECT']
         }, channel, ()=>{
+            this.#doTeamNameSelection(channel, team);
+        });
+    }
 
-            channel.delete();
+    #doTeamNameSelection(channel, team) {
 
-            this.channels['main'].send(new MessageEmbed().setColor('00a8ff').setTitle("Your game summary").addField("Your team", formatPlayers(this.teams[team].players)).addField("Map", this.map));
+        // TODO Find a good way to name teams. For now can be done by 10 Mans staff
 
-            // Create team voice channels
-            app.discordClient.channels.fetch(this.category).then(category => {
-                this.guild.channels.create(`Team ${team} Voice`, {
-                    type: "voice",
-                    parent: category,
-                    permissionOverwrites: createOverrideFromlist(this.teams[team].players, this.guild),
-                    reason: "10 Mans game has started"
-                }).then(mainChannel => {
-                    this.teams[0].voice_channel = mainChannel;
-                });
+        channel.delete()
+
+        this.channels['main'].send(new MessageEmbed().setFooter("Bot by Aspy | "+this.snowflake).setColor('00a8ff').setTitle("Your game summary").addField("Your team", formatPlayers(this.teams[team].players)).addField("Map", this.map));
+        // Create team voice channels
+        app.discordClient.channels.fetch(this.category).then(category => {
+            this.guild.channels.create(`Team ${team} Voice`, {
+                type: "voice",
+                parent: category,
+                permissionOverwrites: createOverrideFromlist(this.teams[team].players, this.guild),
+                reason: "10 Mans game has started"
+            }).then(mainChannel => {
+                this.teams[0].voice_channel = mainChannel;
             });
         });
     }
