@@ -1,4 +1,4 @@
-
+const app = require("../../app");
 const GuildQueue = require("../lib/GuildQueue");
 const Game = require("../lib/Game");
 
@@ -22,6 +22,9 @@ module.exports = class extends require('../lib/Command') {
                 break;
             case "START":
                 this.createGame();
+                break;
+            case "GENSF":
+                this.getChannel().send(app.snowflake.generateSnowflake(this.getArgs()[0]))
                 break;
             case "PRINTDB":
                 this.debug.printdb();
@@ -152,7 +155,9 @@ module.exports = class extends require('../lib/Command') {
 
     closeQueue() {
         let guild = this.getGuild();
-        this.getCommandManager().getApplication().queuemap[guild.id].cancel();
-        delete this.getCommandManager().getApplication().queuemap[guild.id];
+        if(this.getCommandManager().getApplication().queuemap[guild.id] !== undefined){
+            this.getCommandManager().getApplication().queuemap[guild.id].cancel();
+            delete this.getCommandManager().getApplication().queuemap[guild.id];
+        }
     }
 }
