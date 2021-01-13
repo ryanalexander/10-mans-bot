@@ -109,10 +109,13 @@ module.exports = class extends require('../lib/Command') {
                 game.cancel();
                 break;
             case "REMPLAYER":
+                game.removePlayer(this.getArg().mentions.members.first());
                 break;
             case "ADDPLAYER":
+                game.addPlayer(this.getArg().mentions.members.first());
                 break;
             case "GETSUB":
+                game.getSub();
                 break;
             case "PRINTV":
                 game.printv(game.channels['staff']);
