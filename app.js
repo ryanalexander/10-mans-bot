@@ -13,6 +13,8 @@ exports.gamemap = [];
 
 const commandManager = new (require('./bin/managers/CommandManager'))(Discord, client, exports.config);
 
+
+
 client.on('ready', ()=>{
     console.log(`Client is ready`);
 });
@@ -29,7 +31,7 @@ client.on('messageReactionAdd', (reaction, user)=>{
 });
 
 client.login(exports.config.token).then(r => {
-    client.channels.fetch("767660775425703977").then(channel => {
-        channel.send(new Discord.MessageEmbed().setColor("GREEN").setDescription("10 Mans Bot is now running"));
+    client.channels.fetch(exports.config.debugging.screaming_channel).then(channel => {
+        channel.send(new Discord.MessageEmbed().setColor("GREEN").addField("Bot status","The bot has started."));
     })
 });

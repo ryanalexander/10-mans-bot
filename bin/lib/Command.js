@@ -1,5 +1,7 @@
 const CommandSender = require("./CommandSender");
 const CommandManager = require("../managers/CommandManager");
+const app = require("../../app");
+const {MessageEmbed} = require("discord.js");
 
 module.exports = class {
 
@@ -20,7 +22,17 @@ module.exports = class {
         this.arg = arg;
         this.args = args;
 
-        this.execute(member, channel, cmd, arg, args);
+        this.execute(member, channel, cmd, arg, args).catch(e => {
+            app.discordClient.channels.resolve(app.config.debugging.error_channel)
+                .send(new MessageEmbed()
+                    .setColor("RED")
+                    .setTitle("Something has gone wrong")
+                    .addField("Command", cmd)
+                    .addField("Message", arg)
+                    .addField("Error", e.code)
+                    .addField("Stack Trace", `\`\`\`${e}\`\`\``)
+                );
+        });
     }
 
     /**

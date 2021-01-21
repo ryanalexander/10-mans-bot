@@ -1,7 +1,8 @@
 const process = require("process");
+const { UniqueID } = require('nodejs-snowflake');
 const app = require("../../app");
-const types = ['','GAME', 'SCORE_ENTRY', 'GAME_PLAYER', 'PLAYER', 'RIOT_PLAYER'];
 let epoch = new Date().getTime();
+
 
 module.exports = class {
     constructor(instanceId) {
@@ -21,6 +22,11 @@ module.exports = class {
     generateSnowflake(type) {
         this.identifier++;
         if(this.identifier >= 9216) this.identifier = 0;
-        return types.indexOf(type) + "" + this.instanceId + "" + Math.floor(Math.random() * Math.floor(1024)) + "" + new Date(new Date().getTime() - epoch).getTime() + "" + this.identifier + process.pid + Math.floor(Math.random() * Math.floor(1024));
+        return new UniqueID({
+            returnNumber: false,
+            machineID: 0,
+            customEpoch: epoch,
+
+        }).getUniqueID();
     }
 }

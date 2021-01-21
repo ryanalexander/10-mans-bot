@@ -58,6 +58,7 @@ module.exports = class {
     handleReaction(reaction, user) {
         switch(reaction.emoji.name){
             case "✅":
+                app.database.getPlayerOrCreate(user.id);
                 if(this.queueMembers.indexOf(user.id) <= -1) {
                     if(this.priority.find(priorityPlayer => priorityPlayer.player === user.id)){
                         this.queueMembers.unshift(user.id)
@@ -82,9 +83,7 @@ module.exports = class {
         this.embed.setTitle("10 Mans Waiting List");
         this.embed.setColor("RED");
 
-        this.embed.setFooter("Bot by Aspy | "+this.snowflake)
-
-        // TODO Actually put content in embed
+        this.embed.setFooter("You will receive a dm when you find a match")
 
         this.commandManager.getClient().channels.fetch(this.config.queueChannel).then(channel => {
             channel.send(this.embed).then(message => {
@@ -107,7 +106,7 @@ function formatQueue(arr) {
     let result = "";
 
     for(var i = 0; i<arr.length&&i<20; i++)
-        result += ((i === 9)?"**!  |** __**Next game**__\n":"")+"**"+(arr.indexOf(arr[i])+1)+" |** <@"+arr[i]+">\n"
+        result += ((i === 10)?"**!  |** __**Next game**__\n":"")+"**"+(arr.indexOf(arr[i])+1)+" |** <@"+arr[i]+">\n"
     if(arr.length > 20)
         result += `*and ${arr.length - 20} more*`
     if(result === "")

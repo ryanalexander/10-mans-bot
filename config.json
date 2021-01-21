@@ -1,8 +1,9 @@
 {
   "token": "Njk4NjUxOTI4NzExNzkwNjc0.XpI8oA.3HU9AkAo7nXbkTJ9j4ESUXZtE7U",
   "debugging": {
-    "debugging": false,
-    "screaming_channel": "767660775425703977"
+    "debugging": true,
+    "screaming_channel": "801438430172938291",
+    "error_channel": "801438445293535243"
   },
   "administrators": [
     "317236321099710467",

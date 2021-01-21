@@ -2,6 +2,7 @@
 const fs = require("fs");
 const CommandSender = require("../lib/CommandSender");
 const app = require("../../app");
+const {MessageEmbed} = require("discord.js");
 
 module.exports = class {
 
@@ -14,9 +15,14 @@ module.exports = class {
     handle(message) {
         var sender = new CommandSender(message.member);
         var name = message.content.substr(1, message.length).split(" ")[0];
-        if (fs.existsSync(`./bin/commands/${name}.js`))
-            new (require(`../commands/${name}.js`))(this, sender, message.channel, name, message, message.content.substr(1, message.length).split(" "));
-        message.delete();
+        try {
+            if (fs.existsSync(`./bin/commands/${name}.js`)) {
+                new (require(`../commands/${name}.js`))(this, sender, message.channel, name, message, message.content.substr(1, message.length).split(" "));
+                message.delete();
+            }
+        }catch (e) {
+            console.log(e);
+        }
     }
 
     getApplication() {

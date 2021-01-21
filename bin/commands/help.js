@@ -8,6 +8,7 @@ module.exports = class extends Command {
 
         embed.addField("Name", this.getSender().getUsername());
         embed.addField("Developer", this.getSender().hasPermission("DEV"));
+        embed.addField("Random Identifier", this.getCommandManager().getApplication().snowflake.generateSnowflake(""));
 
 
         this.getChannel().send(embed);
