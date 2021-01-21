@@ -46,7 +46,6 @@ module.exports = class extends require('../lib/Command') {
             case "INITIATE":
             case "INSERT":
             case "BEGIN":
-                // TODO Create queue
                 this.createQueue();
                 break;
             case "STOP":
@@ -55,7 +54,6 @@ module.exports = class extends require('../lib/Command') {
             case "DELETE":
             case "TERMINATE":
             case "END":
-                // TODO Remove queue
                 this.closeQueue();
                 break;
             default:
@@ -152,6 +150,9 @@ module.exports = class extends require('../lib/Command') {
 
     createQueue() {
         let guild = this.getGuild();
+
+        if(this.getCommandManager().getApplication().queuemap[guild.id] !== undefined)
+            return;
 
         this.getCommandManager().getApplication().queuemap[guild.id] = new GuildQueue(guild, this.getCommandManager());
     }
