@@ -7,7 +7,7 @@ exports.discordClient = client;
 
 exports.snowflake = new (require('./bin/lib/Snowflake'))(0);
 exports.database = new (require('./bin/lib/Database'))();
-exports.config = JSON.parse(fs.readFileSync("./config.json"));
+exports.config = JSON.parse(fs.readFileSync("./config.json").toString('utf-8'));
 exports.queuemap = {};
 exports.gamemap = [];
 
@@ -28,6 +28,13 @@ client.on('messageReactionAdd', (reaction, user)=>{
     if(user === client.user)return;
     if(exports.queuemap[reaction.message.guild.id] !== undefined && exports.queuemap[reaction.message.guild.id].message.id === reaction.message.id)
         exports.queuemap[reaction.message.guild.id].handleReaction(reaction, user);
+});
+
+client.ws.on('INTERACTION_CREATE', async interaction => {
+    const command = interaction.data.name.toLowerCase();
+    const args = interaction.data.options;
+
+    console.log(interaction);
 });
 
 client.login(exports.config.token).then(r => {

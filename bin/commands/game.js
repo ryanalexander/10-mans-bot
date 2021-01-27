@@ -95,7 +95,7 @@ module.exports = class extends require('../lib/Command') {
     thisGame(args, game) {
         switch(this.getArgs().length>2?this.getArgs()[2].toUpperCase():""){
             case "SETTEAM":
-                game.setTeam(this.getArg().mentions.members.first(), this.getArgs()[4]);
+                game.setTeam(this.getArg().mentions.members.first().id, this.getArgs()[4]);
                 break;
             case "STOP":
             case "CLOSE":
@@ -104,16 +104,16 @@ module.exports = class extends require('../lib/Command') {
             case "DELETE":
             case "TERMINATE":
             case "END":
-                game.cancel();
+                game.cancel(game.gamestage > 2);
                 break;
             case "REMPLAYER":
-                game.removePlayer(this.getArg().mentions.members.first());
+                game.removePlayer(this.getArg().mentions.members.first().id);
                 break;
             case "ADDPLAYER":
-                game.addPlayer(this.getArg().mentions.members.first());
+                game.addPlayer(this.getArg().mentions.members.first().id);
                 break;
             case "GETSUB":
-                game.getSub();
+                game.getSub(game.channels['staff']);
                 break;
             case "PRINTV":
                 game.printv(game.channels['staff']);

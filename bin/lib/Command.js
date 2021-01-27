@@ -22,7 +22,9 @@ module.exports = class {
         this.arg = arg;
         this.args = args;
 
-        this.execute(member, channel, cmd, arg, args).catch(e => {
+        let execute = this.execute(member, channel, cmd, arg, args);
+        if(execute !== undefined)
+            execute.catch(e => {
             app.discordClient.channels.resolve(app.config.debugging.error_channel)
                 .send(new MessageEmbed()
                     .setColor("RED")

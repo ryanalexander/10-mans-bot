@@ -38,8 +38,8 @@ module.exports = class {
         // Determine Captains
         let captains = this.#determineCaptains();
 
-        this.players_unassigned = removeItemAll(this.players_unassigned, captains[0]);
-        this.players_unassigned = removeItemAll(this.players_unassigned, captains[1]);
+        this.players_unassigned = removeItemAll(this.players_unassigned, captains[0].id);
+        this.players_unassigned = removeItemAll(this.players_unassigned, captains[1].id);
 
         app.database.registerGame(this).then(r => console.log(`Game ${this.snowflake} has been pushed to db`));
 
@@ -74,18 +74,6 @@ module.exports = class {
      * Cancel match and run cleanup such as deleting channels and adding players back to queue
      */
     cancel(silent) {
-        // Message players
-        if(silent === undefined || silent === false) {
-            this.players.forEach(player => {
-                app.discordClient.users.resolve(player).send(new MessageEmbed().setColor("RED").setTitle("Your match has been cancelled").setDescription(`The game ${this.id} has been cancelled. You have been returned to the queue.\n\n**If you re-queue within a minute you will be at the top**`)).then(null);
-
-                // Add players back to queue
-                app.queuemap[this.guild['id']].priority.push({
-                    player: player,
-                    expires: (new Date()).getTime(60000)
-                });
-            });
-        }
         // Update database
         app.database.finishGame(this);
         // Delete channels
@@ -93,26 +81,41 @@ module.exports = class {
             category['children'].forEach((channel)=> channel.delete());
             category.delete().then(null);
         })
+
         // Remove object
         app.gamemap = removeItemAll(app.gamemap,this);
+
+        // Message players
+        if(silent === undefined || silent === false) {
+            this.players.forEach(player => {
+                // Give queue priority for 5 minutes
+                app.queuemap[this.guild['id']].priority.push({
+                    player: player,
+                    expires: (new Date()).getTime(60000)
+                });
+
+                // Direct message player
+                app.discordClient.users.resolve(player).send(new MessageEmbed().setColor("RED").setTitle("Your match has been cancelled").setDescription(`The game ${this.id} has been cancelled. You have been returned to the queue.\n\n**If you re-queue within a minute you will be at the top**`)).then(null);
+            });
+        }
     }
 
     /**
      * Set the team of a player in the game
-     * @param {GuildMember} player Discord.JS player object
+     * @param {Snowflake} player Discord.JS player object
      * @param {Number} team Team number (0 - 1)
      */
     setTeam(player, team) {
         let currentTeam = this.getTeam(player);
         if(currentTeam != null)
-            currentTeam.players = removeItemAll(currentTeam.players, player.id);
-        this.players_unassigned = removeItemAll(this.players_unassigned, player.id);
-        this.teams[team].players.push(player.id);
+            currentTeam.players = removeItemAll(currentTeam.players, player);
+        this.players_unassigned = removeItemAll(this.players_unassigned, player);
+        this.teams[team].players.push(player);
     }
 
     /**
      *
-     * @param {GuildMember} player
+     * @param {Snowflake} player
      * @returns {{}} Team
      */
     getTeam(player) {
@@ -123,18 +126,30 @@ module.exports = class {
     }
 
     addPlayer(player) {
-        this.players.push(player.id);
-        this.players_unassigned.push(player.id);
+        this.players.push(player);
+        this.players_unassigned.push(player);
+
+        this.category.overwritePermissions(createOverrideFromlist(this.players));
     }
     removePlayer(player) {
-        this.players = removeItemAll(this.players, player.id);
-        this.players_unassigned = removeItemAll(this.players_unassigned, player.id);
+        this.players = removeItemAll(this.players, player);
+        this.players_unassigned = removeItemAll(this.players_unassigned, player);
+
+        let currentTeam = this.getTeam(player);
+        if(currentTeam != null)
+            currentTeam.players = removeItemAll(currentTeam.players, player);
+
+        this.category.overwritePermissions(createOverrideFromlist(this.players));
     }
 
-    getSub() {
+    getSub(channel) {
+        let embed = new MessageEmbed().setTitle("Added player from queue").setColor("BLURPLE");
         let member = app.queuemap[this.guild.id].getQueueMembers()[0]
         app.queuemap[this.guild.id].removeFromQueue(member);
         this.addPlayer(member);
+        embed.setDescription("Added <@"+member+"> from queue");
+        channel.send(embed);
+        return member;
     }
 
     printv(channel) {
@@ -148,6 +163,7 @@ module.exports = class {
         embed.setFooter("Bot by Aspy | "+this.snowflake)
         this.teams.forEach(team => {
             embed.addField(team+ " Active Interaction", "> "+team.interact.discordMessage);
+            embed.addField(team+ " Players", "> "+JSON.stringify(team.players));
             embed.addField(team+" isActive", "> "+team.interact.discordMessage.active);
         });
         channel.send(embed);
@@ -285,7 +301,7 @@ module.exports = class {
                 this.teams[team].interact.doRenderAction(this.players_unassigned);
                 this.teams[team===0?1:0].interact.setActive(true);
                 this.teams[team===0?1:0].interact.doRenderAction(this.players_unassigned);
-                this.setTeam(member, team);
+                this.setTeam(member.id, team);
 
                 if(this.players_unassigned.length === 1) {
                     this.teams[0].interact.cancel();
@@ -293,7 +309,7 @@ module.exports = class {
                     this.gamestage = 2;
 
                     reaction.message.guild.members.fetch(this.players_unassigned[0]).then(member => {
-                        this.setTeam(member, team===0?1:0);
+                        this.setTeam(member.id, team===0?1:0);
                     });
                 }
             })
@@ -329,7 +345,7 @@ module.exports = class {
                 this.gamestage = 3;
 
                 // Update in Database
-                app.database.setGameMap(this, this.map);
+                app.database.setGameMap(this, this.map_pool[0]);
             }
         }), {
             title: ["Ban a map", "Waiting for other captain..."],

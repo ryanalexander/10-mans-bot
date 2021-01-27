@@ -8,6 +8,9 @@ const Player = require("./Player");
 const Snowflake = require("./Snowflake");
 
 const queries = {
+    EVENT_BY_SNOWFLAKE: 'SELECT * FROM events WHERE snowflake = ? LIMIT 1 ALLOW FILTERING;',
+    UPCOMING_EVENTS: 'SELECT * FROM events WHERE time > ? LIMIT 10 ALLOW FILTERING;',
+
     PLAYER_BY_SNOWFLAKE: 'SELECT * FROM players WHERE snowflake = ? LIMIT 1 ALLOW FILTERING;',
     PLAYER_BY_DISCORD: 'SELECT * FROM players WHERE discord_id = ? LIMIT 1 ALLOW FILTERING;',
 
@@ -24,6 +27,8 @@ const queries = {
     PUNISHMENT_BY_SNOWFLAKE: 'SELECT * FROM punishments WHERE player = ? ALLOW FILTERING;',
 
     INSERT: {
+        REGISTER_EVENT: 'INSERT INTO events (snowflake, cancelled, time, title) VALUES (?, ?, ?, ?)',
+
         REGISTER_PLAYER: 'INSERT INTO players (snowflake, discord_id, mmr, first_seen) VALUES (?, ?, ?, ?)',
         REGISTER_CASTER: 'INSERT INTO casters (snowflake, player, twitch) VALUES (?, ?, ?)',
 
@@ -58,6 +63,10 @@ module.exports = class {
         });
     }
 
+    async getUpcomingEvents() {
+        return ((await this.client.execute(queries.UPCOMING_EVENTS, [new Date().getTime()], {prepare: true})));
+    }
+
     async getPlayerBySnowflake(id) {
         return ((await this.client.execute(queries.PLAYER_BY_SNOWFLAKE, [id], {prepare: true})).first());
     }
@@ -88,8 +97,8 @@ module.exports = class {
     }
     async getCasterOrCreate(id, twitch) {
         var p = await this.getCasterByPlayer(id);
-        if(p !== null)
-            return p;
+        if(p !== null && p.rows[0] !== undefined)
+            return p.rows[0];
         return this.registerCaster(id, twitch);
     }
 
@@ -105,8 +114,13 @@ module.exports = class {
         ], {prepare: true})
     }
 
+    registerEvent(title, time) {
+        console.log(`INSERT ${title} ${time}`);
+        this.client.execute(queries.INSERT.REGISTER_EVENT, [app.snowflake.generateSnowflake(""), "false", time, title])
+    }
+
     registerCaster(player, twitch) {
-        this.client.execute(queries.INSERT.REGISTER_CASTER, [app.snowflake.generateSnowflake(""), player, twitch])
+        this.client.execute(queries.INSERT.REGISTER_CASTER, [app.snowflake.generateSnowflake(""), player, twitch], {prepare: true})
     }
 
     registerPlayer(player) {
@@ -114,13 +128,13 @@ module.exports = class {
     }
 
     setGameMap(game, map) {
-        this.client.execute(queries.UPDATE.SET_GAME_MAP, [map, game.snowflake]).then(r => {
+        this.client.execute(queries.UPDATE.SET_GAME_MAP, [map, game.snowflake], {prepare: true}).then(r => {
             console.log(`Updated map for ${game.snowflake} to ${map}`);
         });
     }
 
     finishGame(game) {
-        this.client.execute(queries.UPDATE.SET_GAME_FINISHED, [new Date().getTime(), game.snowflake]);
+        this.client.execute(queries.UPDATE.SET_GAME_FINISHED, [new Date().getTime(), game.snowflake], {prepare: true});
     }
 
     async registerGame(game) {

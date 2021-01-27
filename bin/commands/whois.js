@@ -16,11 +16,11 @@ module.exports = class extends require('../lib/Command') {
         embed.setAuthor(member.displayName, member.user.defaultAvatarURL);
 
         embed.addField("First match", player.first_seen !== undefined? player.first_seen : "hasn't played", true);
-        embed.addField("Total games", matches.rows.length, true);
-        embed.addField("Total blacklists", punishments.rows.length, true);
+        embed.addField("Total games", matches.rows !== undefined? matches.rows.length : 0, true);
+        embed.addField("Total blacklists", punishments.rows !== undefined? punishments.rows.length : 0, true);
 
         embed.addField("Linked accounts", (()=>{
-            let reply = "";
+            let reply = ":";
             accounts.rows.forEach(account =>
                 reply += `${account.riot_name}#${account.riot_tagline}\n`
             );
