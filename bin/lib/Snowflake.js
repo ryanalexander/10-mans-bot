@@ -19,7 +19,7 @@ module.exports = class {
      * @returns {string}
      * @param {types} type
      */
-    generateSnowflake(type) {
+    generateSnowflake() {
         this.identifier++;
         if(this.identifier >= 9216) this.identifier = 0;
         return new UniqueID({

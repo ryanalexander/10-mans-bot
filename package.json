@@ -6,11 +6,24 @@
   "scripts": {
     "start bot": "node --trace-warnings app"
   },
+  "bin": "app.js",
+  "pkg": {
+    "assets": [
+      "node_modules/**/*",
+      "bin/**/*"
+    ],
+    "targets": [
+      "node10-win-x64"
+    ]
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sapphire/snowflake": "^1.2.4",
     "cassandra-driver": "^4.6.1",
+    "colors": "^1.4.0",
     "discord.js": "^12.3.1",
-    "nodejs-snowflake": "^1.5.1"
+    "nodejs-snowflake": "^1.5.1",
+    "websocket": "^1.0.33"
   }
 }

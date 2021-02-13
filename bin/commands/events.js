@@ -11,6 +11,34 @@ module.exports = class extends Command {
         let embed = new MessageEmbed().setColor("BLURPLE");
 
         switch(action) {
+            case "REGISTER_CASTER":
+            case "ADD":
+            case "REGISTERCASTER":
+            case "REGISTER_CASTERS":
+            case "REGISTERCASTERS":
+                let event = await app.database.getEventBySnowflake(this.getArgs()[2]);
+                let player = await app.database.getPlayerOrCreate(this.getArg().mentions.members.first().id);
+                let caster = await app.database.getCasterByPlayer(player.id);
+
+                if(caster.rows.length === 0){
+                    this.getChannel().send("Unknown caster");
+                    return;
+                }
+                if(event.rows.length === 0){
+                    this.getChannel().send("Unknown event");
+                    return;
+                }
+
+                this.getChannel().send(new MessageEmbed().setColor("BLURPLE")
+                    .setTitle("Added Caster to Event")
+                    .addField("Event Name", event.rows[0].title)
+                    .addField("Caster Name", player)
+                );
+                break;
+            case "REMOVE_CASTER":
+            case "REMOVECASTER":
+            case "REMOVE":
+                break;
             case "CREATE": // .events create
                 let payload = JSON.parse(this.getArg().toString('utf-8').substr(15, this.getArg().length));
                 embed.setTitle("Created event")

@@ -2,10 +2,16 @@ const app = require("../../app");
 const GuildQueue = require("../lib/GuildQueue");
 const Game = require("../lib/Game");
 
+const {MessageEmbed} = require('discord.js');
+
 module.exports = class extends require('../lib/Command') {
     execute() {
 
-        if(!this.getSender().hasRoleByName("10 Mans Staff"))
+        if(this.getConfig().type !== "client") {
+            this.getChannel().send("This is a management Discord. You may only execute `game` in a client Discord!");
+            return;
+        }
+        if(!this.getSender().hasRoleByName("10 Mans Staff") && !this.getSender().hasPermission("DEV"))
             return;
 
         switch(this.getArgs().length>1?this.getArgs()[1].toUpperCase():""){
@@ -24,7 +30,7 @@ module.exports = class extends require('../lib/Command') {
                 this.createGame();
                 break;
             case "GENSF":
-                this.getChannel().send(app.snowflake.generateSnowflake(this.getArgs()[0]))
+                this.getChannel().send(app.snowflake.generateSnowflake())
                 break;
             case "PRINTDB":
                 this.debug.printdb();
@@ -55,6 +61,8 @@ module.exports = class extends require('../lib/Command') {
             case "TERMINATE":
             case "END":
                 this.closeQueue();
+                break;
+            case "ADDPLAYER":
                 break;
             default:
                 this.helpMenu("QUEUE");
@@ -95,7 +103,20 @@ module.exports = class extends require('../lib/Command') {
     thisGame(args, game) {
         switch(this.getArgs().length>2?this.getArgs()[2].toUpperCase():""){
             case "SETTEAM":
-                game.setTeam(this.getArg().mentions.members.first().id, this.getArgs()[4]);
+                game.setTeam(this.getArg().mentions.members.first().id, this.getArgs()[4]-1);
+                this.getArg().reply(new MessageEmbed()
+                        .setColor('BLURPLE')
+                        .setTitle('Team set')
+                        .setDescription(`<@${this.getArg().mentions.members.first().id}> has been assigned to ${game.teams[this.getArgs()[4]-1].name}`)
+                    );
+                break;
+            case "SETNAME":
+                this.getArg().reply(new MessageEmbed()
+                    .setColor('BLURPLE')
+                    .setTitle('Team name set')
+                    .setDescription(`${game.teams[this.getArgs()[3]-1].name} has been renamed to ${this.getArgs()[4]}`)
+                );
+                game.setTeamName(this.getArgs()[3]-1, this.getArgs()[4]);
                 break;
             case "STOP":
             case "CLOSE":
@@ -117,6 +138,9 @@ module.exports = class extends require('../lib/Command') {
                 break;
             case "PRINTV":
                 game.printv(game.channels['staff']);
+                break;
+            case "SETCASTERS":
+                game.setCasters(this.getArg().mentions.members)
                 break;
             default:
                 this.getChannel().send("Unknown arguments");

@@ -2,10 +2,11 @@ module.exports = class {
 
     static players = [];
 
-    constructor(snowflake, discord_id, mmr) {
+    constructor(snowflake, discord_id, mmr, displayName) {
         this.snowflake = snowflake;
         this.discord_id = discord_id;
         this.mmr = mmr;
+        this.displayName = displayName;
     }
 
     getSnowflake() {
@@ -18,6 +19,10 @@ module.exports = class {
 
     getMmr() {
         return this.mmr;
+    }
+
+    getDisplayName() {
+        return this.displayName;
     }
 
 }

@@ -13,18 +13,21 @@ module.exports = class {
      * @param {Message} cmd Discord.JS Message Object
      * @param {String} arg Issued command in text format
      * @param {String[]} args Array of arguments after command
+     * @param {Object} config Configuration for Guild
      */
-    constructor(commandManager, member, channel, cmd, arg, args) {
+    constructor(commandManager, member, channel, cmd, arg, args, config) {
         this.commandManager = commandManager;
         this.member = member;
         this.channel = channel;
         this.cmd = cmd;
         this.arg = arg;
         this.args = args;
+        this.config = config;
 
         let execute = this.execute(member, channel, cmd, arg, args);
         if(execute !== undefined)
             execute.catch(e => {
+                console.log(e);
             app.discordClient.channels.resolve(app.config.debugging.error_channel)
                 .send(new MessageEmbed()
                     .setColor("RED")
@@ -77,5 +80,9 @@ module.exports = class {
 
     getArgs() {
         return this.args;
+    }
+
+    getConfig() {
+        return this.config;
     }
 }

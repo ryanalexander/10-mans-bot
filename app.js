@@ -8,18 +8,18 @@ exports.discordClient = client;
 exports.snowflake = new (require('./bin/lib/Snowflake'))(0);
 exports.database = new (require('./bin/lib/Database'))();
 exports.config = JSON.parse(fs.readFileSync("./config.json").toString('utf-8'));
+exports.integration = new (require('./bin/lib/LiveData'))();
 exports.queuemap = {};
 exports.gamemap = [];
 
 const commandManager = new (require('./bin/managers/CommandManager'))(Discord, client, exports.config);
-
-
 
 client.on('ready', ()=>{
     console.log(`Client is ready`);
 });
 
 client.on('message', (message)=>{
+
     if(message.content.startsWith(exports.config.commandManager.prefix))
         commandManager.handle(message);
 })

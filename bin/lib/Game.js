@@ -8,7 +8,7 @@ const GameStage = ['INITIALIZING', 'PLAYER_SELECTION', 'MAP_SELECTION', 'WAITING
 module.exports = class {
 
     id = Object.keys(app.gamemap).length;
-    snowflake = app.snowflake.generateSnowflake('GAME');
+    snowflake = app.snowflake.generateSnowflake();
     category = 0;
     gamestage = 0;
     channels = {};
@@ -41,8 +41,6 @@ module.exports = class {
         this.players_unassigned = removeItemAll(this.players_unassigned, captains[0].id);
         this.players_unassigned = removeItemAll(this.players_unassigned, captains[1].id);
 
-        app.database.registerGame(this).then(r => console.log(`Game ${this.snowflake} has been pushed to db`));
-
         // Create teams
         this.teams.push({
             captain: captains[0],
@@ -56,6 +54,12 @@ module.exports = class {
             text_channel: null,
             voice_channel: null,
             players: [captains[1].id]
+        });
+
+        app.database.registerGame(this).then(r => {
+            this.teams[0].snowflake = r['team0']
+            this.teams[1].snowflake = r['team1']
+            console.log(`Game ${this.snowflake} has been pushed to db`)
         });
 
         // Create channels
@@ -110,7 +114,16 @@ module.exports = class {
         if(currentTeam != null)
             currentTeam.players = removeItemAll(currentTeam.players, player);
         this.players_unassigned = removeItemAll(this.players_unassigned, player);
-        this.teams[team].players.push(player);
+        if(this.teams[team] !== undefined)
+            this.teams[team].players.push(player);
+        this.teams.forEach(team => {
+            if(team.voice_channel !== null)
+                team.voice_channel.overwritePermissions(createOverrideFromlist(this.teams[team].players, this.guild))
+        })
+    }
+
+    setTeamName(team, name) {
+        app.database.setTeamName(this.teams[team].snowflake, name);
     }
 
     /**
@@ -125,21 +138,32 @@ module.exports = class {
         }))
     }
 
+    async setCasters(members) {
+        for (const member of members) {
+            let player = await app.database.getPlayerOrCreate(member[0]);
+            let caster = await app.database.getCasterOrCreate(player.snowflake, "");
+            app.database.addCasterToGame(this.snowflake, caster.snowflake);
+            app.integration.giveCasterGame(caster.snowflake, this.snowflake)
+        }
+    }
+
     addPlayer(player) {
         this.players.push(player);
         this.players_unassigned.push(player);
 
-        this.category.overwritePermissions(createOverrideFromlist(this.players));
+        app.discordClient.channels.fetch(this.category).then(channel =>
+            channel.overwritePermissions(createOverrideFromlist(this.players, this.guild))
+        )
     }
     removePlayer(player) {
         this.players = removeItemAll(this.players, player);
         this.players_unassigned = removeItemAll(this.players_unassigned, player);
 
-        let currentTeam = this.getTeam(player);
-        if(currentTeam != null)
-            currentTeam.players = removeItemAll(currentTeam.players, player);
+        this.setTeam(player, null);
 
-        this.category.overwritePermissions(createOverrideFromlist(this.players));
+        app.discordClient.channels.fetch(this.category).then(channel =>
+            channel.overwritePermissions(createOverrideFromlist(this.players, this.guild))
+        )
     }
 
     getSub(channel) {
@@ -158,6 +182,9 @@ module.exports = class {
         embed.addField("Stage", "> "+GameStage[this.gamestage]);
         embed.addField("Maps", "> "+JSON.stringify(this.map_pool));
         embed.addField("Players", "> "+JSON.stringify(this.players));
+        embed.addField("Players Unassigned", "> "+JSON.stringify(this.players_unassigned));
+        embed.addField("Team 1", "> "+formatPlayers(this.teams[0].players));
+        embed.addField("Team 2", "> "+formatPlayers(this.teams[1].players));
         embed.addField("Epoch", "> "+this.epoch);
 
         embed.setFooter("Bot by Aspy | "+this.snowflake)
@@ -210,7 +237,7 @@ module.exports = class {
                 embed.setColor("BLURPLE")
                 embed.addField("Captains", `**Team 1** <@${this.teams[0].captain.user.id}>\n**Team 2** <@${this.teams[1].captain.user.id}>`)
                 embed.addField("Players", formatPlayers(this.players))
-                mainChannel.send(embed);
+                mainChannel.send(embed)
 
                 mainChannel.send(formatPlayers(this.players)).then(message => message.delete());
             })
@@ -281,9 +308,11 @@ module.exports = class {
                 mainChannel.send(new MessageEmbed().setColor("RED").setDescription("This channel can be used to run game specific commands. These commands are listed below")
                     .addField("Cancel Match",".game this cancel")
                     .addField("Remove player",".game this remplayer {tag}")
-                    .addField("Set player team",".game this setteam {tag} {1 - 2}")
                     .addField("Add player",".game this addplayer {tag}")
+                    .addField("Set player team",".game this setteam {tag} {1 - 2}")
                     .addField("Add next player",".game this getsub")
+                    .addField("Set team name",".game this setname {1 -2} {name (max 1 word)}")
+                    .addField("Set Casters",".game this setcasters {tag all casters...}")
                 );
             });
         });
@@ -303,7 +332,7 @@ module.exports = class {
                 this.teams[team===0?1:0].interact.doRenderAction(this.players_unassigned);
                 this.setTeam(member.id, team);
 
-                if(this.players_unassigned.length === 1) {
+                if(this.players_unassigned.length <= 1) {
                     this.teams[0].interact.cancel();
                     this.teams[1].interact.cancel();
                     this.gamestage = 2;
@@ -365,7 +394,7 @@ module.exports = class {
         channel.delete()
 
         this.channels['main'].send(
-            new MessageEmbed().setColor('00a8ff')
+            new MessageEmbed().setColor(team===0?'#FF7D7D':'#7D9FFF')
                 .setTitle(this.teams[team].name+` team Summary`)
                 .addField("Captain", `<@${this.teams[team].captain.id}>`)
                 .addField("Players", formatPlayers(this.teams[team].players))
@@ -426,8 +455,8 @@ function createOverrideFromlist(players, guild) {
             allow: ['SEND_MESSAGES', 'CONNECT', 'SPEAK', 'USE_VAD', 'READ_MESSAGE_HISTORY']
         },
         {
-            id: guild.roles.cache.find(role => role.name === "10 Mans Staff"),
-            allow: ['VIEW_CHANNEL']
+            id: guild.roles.cache.find(role => role.name === "Event Staff"),
+            allow: ['VIEW_CHANNEL', 'PRIORITY_SPEAKER']
         },
         {
             id: app.discordClient.user.id,

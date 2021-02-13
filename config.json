@@ -21,12 +21,25 @@
     "pass": "{password}"
   },
   "guilds": {
+    "746962575710879765" : {
+      "type": "manage"
+    },
     "537887361292304385": {
+      "type": "client",
       "queueChannel": "749051814795804762",
+      "commandChannels": [
+        "602127986422054953",
+        "780369768037220362",
+        "702877894665437296"
+      ],
       "captainPriority": [
         {
           "type": "ROLE",
           "name": "Ignition Champions"
+        },
+        {
+          "type": "ROLE",
+          "name": "Event Staff"
         },
         {
           "type": "ROLE",
@@ -55,6 +68,7 @@
       ]
     },
     "767649315757752331": {
+      "type": "client",
       "queueChannel": "796977734400213003",
       "captainPriority": [
         {
