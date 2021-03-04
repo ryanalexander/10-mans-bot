@@ -74,6 +74,20 @@ module.exports = class {
         return this.cmd;
     }
 
+    getMentions(type) {
+        switch(type.toUpperCase()) {
+            case 'ROLE':
+                return this.cmd.mentions.roles;
+            case 'USERS':
+            case 'MEMBERS':
+                return this.cmd.mentions.members;
+            case 'CHANNELS':
+                return this.cmd.mentions.channels;
+            default:
+                return [];
+        }
+    }
+
     getArg() {
         return this.arg;
     }

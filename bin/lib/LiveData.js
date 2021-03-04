@@ -1,5 +1,7 @@
 
 const WebSocket = require("websocket").w3cwebsocket;
+const app = require("../../app.js");
+
 module.exports = class {
     constructor() {
         this.init();
@@ -12,7 +14,16 @@ module.exports = class {
                 let data = JSON.parse(event.data);
                 switch (data['action']){
                     case "AUTHENTICATE":
-                        this.conn.send(JSON.stringify({action:"AUTHENTICATE",key:"5cf8deb3-3358-4858-9bc6-ad42e029fd2b"}))
+                        this.conn.send(JSON.stringify({action:"AUTHENTICATE",key:app.config.tokens.stelch,position:"bot"}))
+                        break;
+                    case "GAME_FINISH":
+                        var game = app.gamemap.find(game => game.snowflake === data.snowflake);
+                        if(game) {
+                            game.channels['main'].send(`This match has finished. These channels will be deleted in 60 seconds.`);
+                            setTimeout(()=>{
+                                game.cancel(true);
+                            },60000);
+                        }
                         break;
                     default:
                         console.log(data);

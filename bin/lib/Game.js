@@ -21,6 +21,8 @@ module.exports = class {
     map_pool = ['ASCENT', 'HAVEN', 'BIND', 'SPLIT', 'ICEBOX'];
     teams = [];
 
+    staff_alert = 0;
+
     /**
      *
      * @param {Guild} guild discord.js#guild
@@ -33,7 +35,7 @@ module.exports = class {
         this.epoch = (new Date()).getTime();
         this.guild = guild;
         this.players = players;
-        this.players_unassigned = players;
+        this.players_unassigned = [...players];
 
         // Determine Captains
         let captains = this.#determineCaptains();
@@ -62,6 +64,11 @@ module.exports = class {
             console.log(`Game ${this.snowflake} has been pushed to db`)
         });
 
+        this.staff_alert = setTimeout(()=>{
+            this.staff_alert = null;
+            this.channels['staff'].send(`<@&${app.config.guilds[this.guild.id].supportRole}> this match has gone 60 seconds without team selection. Assistance may be needed.`);
+        },60000);
+
         // Create channels
         this.#createChannels();
     }
@@ -80,10 +87,19 @@ module.exports = class {
     cancel(silent) {
         // Update database
         app.database.finishGame(this);
+
+        if(this.staff_alert != null){
+            clearInterval(this.staff_alert);
+            this.staff_alert = null;
+        }
         // Delete channels
         app.discordClient.channels.fetch(this.category).then(category => {
-            category['children'].forEach((channel)=> channel.delete());
-            category.delete().then(null);
+            (async ()=>{
+                for(const channel of category['children']){
+                    await channel[1].delete()
+                }
+                category.delete().then(null);
+            })();
         })
 
         // Remove object
@@ -102,28 +118,36 @@ module.exports = class {
                 app.discordClient.users.resolve(player).send(new MessageEmbed().setColor("RED").setTitle("Your match has been cancelled").setDescription(`The game ${this.id} has been cancelled. You have been returned to the queue.\n\n**If you re-queue within a minute you will be at the top**`)).then(null);
             });
         }
+
+        delete this;
     }
 
     /**
      * Set the team of a player in the game
      * @param {Snowflake} player Discord.JS player object
-     * @param {Number} team Team number (0 - 1)
+     * @param {Number} teamId Team number (0 - 1)
      */
-    setTeam(player, team) {
+    setTeam(player, teamId) {
         let currentTeam = this.getTeam(player);
         if(currentTeam != null)
             currentTeam.players = removeItemAll(currentTeam.players, player);
         this.players_unassigned = removeItemAll(this.players_unassigned, player);
-        if(this.teams[team] !== undefined)
-            this.teams[team].players.push(player);
+        if(this.teams[teamId] !== undefined)
+            this.teams[teamId].players.push(player);
         this.teams.forEach(team => {
             if(team.voice_channel !== null)
-                team.voice_channel.overwritePermissions(createOverrideFromlist(this.teams[team].players, this.guild))
+                team.voice_channel.overwritePermissions(createOverrideFromlist(team.players, this.guild))
         })
     }
 
     setTeamName(team, name) {
         app.database.setTeamName(this.teams[team].snowflake, name);
+    }
+
+    setCaptain(team, player) {
+        this.teams[team].captain = player;
+        this.teams[team].text_channel.overwritePermissions(createOverrideFromlist([player.id], this.guild));
+        this.setTeam(player.id, team);
     }
 
     /**
@@ -133,7 +157,7 @@ module.exports = class {
      */
     getTeam(player) {
         return this.teams.find((team => {
-            if(team.players.indexOf(player.id) > -1)
+            if(team.players.indexOf((player.id !== undefined)?player.id:player) > -1)
                 return team;
         }))
     }
@@ -158,12 +182,46 @@ module.exports = class {
     removePlayer(player) {
         this.players = removeItemAll(this.players, player);
         this.players_unassigned = removeItemAll(this.players_unassigned, player);
+        let team = this.getTeam(player);
+        if(team !== null) {
+            if(team.captain.id === player){
+                this.channels['staff'].send(`A team captain has been removed from the game. Please specify a new Captain using \`.game this setcaptain ${this.teams.indexOf(team)+1} {player}\``);
+            }
+        }
 
         this.setTeam(player, null);
 
         app.discordClient.channels.fetch(this.category).then(channel =>
             channel.overwritePermissions(createOverrideFromlist(this.players, this.guild))
         )
+    }
+
+    setStage(stage) {
+        switch(stage.toUpperCase()) {
+            case "PLAYER_SELECTION":
+                this.teams.forEach(team => {
+                    team.interact.cancel();
+                    this.#doTeamSelection(team.text_channel, this.teams.indexOf(team));
+                });
+                break;
+            case "MAP_SELECTION":
+                this.teams.forEach(team => {
+                    team.interact.cancel();
+                    this.#doMapSelection(team.text_channel, this.teams.indexOf(team));
+                });
+                break;
+            case "NAME_SELECTION":
+                this.teams.forEach(team => {
+                    team.interact.cancel();
+                    this.#doTeamNameSelection(team.text_channel, this.teams.indexOf(team));
+                });
+                break;
+            case "WAITING_FOR_CASTER":
+                this.teams.forEach(async team => {
+                    this.#doSelectionCleanup(await app.discordClient.channels.fetch(team.text_channel), this.teams.indexOf(team));
+                });
+                break;
+        }
     }
 
     getSub(channel) {
@@ -187,7 +245,7 @@ module.exports = class {
         embed.addField("Team 2", "> "+formatPlayers(this.teams[1].players));
         embed.addField("Epoch", "> "+this.epoch);
 
-        embed.setFooter("Bot by Aspy | "+this.snowflake)
+        embed.setFooter(this.snowflake)
         this.teams.forEach(team => {
             embed.addField(team+ " Active Interaction", "> "+team.interact.discordMessage);
             embed.addField(team+ " Players", "> "+JSON.stringify(team.players));
@@ -217,7 +275,7 @@ module.exports = class {
     #createChannels() {
         let permissionOverwrites = createOverrideFromlist(this.players, this.guild);
 
-        this.guild.channels.create(`10 Mans Game ${this.id}`, {
+        this.guild.channels.create(`10 Mans Game ${this.snowflake}`, {
             type: "category",
             position: app.config.parameters.hoist_offset,
             reason: "10 Mans game has started",
@@ -230,6 +288,7 @@ module.exports = class {
                 parent: category,
                 reason: "10 Mans game has started"
             }).then(mainChannel => {
+                mainChannel.lockPermissions();
                 this.channels['main'] = mainChannel;
 
                 var embed = new (require('discord.js')).MessageEmbed();
@@ -252,7 +311,7 @@ module.exports = class {
                 this.channels['team1'] = mainChannel;
                 this.teams[0].text_channel = mainChannel.id;
                 mainChannel.send(`<@${this.teams[0].captain.user.id}>`).then(message => message.delete());
-                mainChannel.send(new (require('discord.js')).MessageEmbed().setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&772519048251703356> for support.**"));
+                mainChannel.send(new (require('discord.js')).MessageEmbed().setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&"+app.config.guilds[this.guild.id].supportRole+"> for support.**"));
 
                 this.#doTeamSelection(mainChannel, 0);
             });
@@ -267,7 +326,7 @@ module.exports = class {
                 this.channels['team2'] = mainChannel;
                 this.teams[1].text_channel = mainChannel.id;
                 mainChannel.send(`<@${this.teams[1].captain.user.id}>`).then(message => message.delete());
-                mainChannel.send(new MessageEmbed().setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&772519048251703356> for support.**"));
+                mainChannel.send(new MessageEmbed().setColor("RED").setTitle("You are a captain").setDescription("If you are seeing this message you have been given captaincy for a team.\n You will be able to decide your teammates and the map.\n Please follow the prompts below to continue!\n\n**If needed you can tag <@&"+app.config.guilds[this.guild.id].supportRole+"> for support.**"));
 
                 this.#doTeamSelection(mainChannel, 1);
             })
@@ -277,6 +336,8 @@ module.exports = class {
                 parent: category,
                 reason: "10 Mans game has started"
             }).then(voiceChannel => {
+                this.channels['voice'] = voiceChannel;
+                voiceChannel.lockPermissions();
                 voiceChannel.createInvite({
                     temporary: false,
                     reason: "10 Mans game has started"
@@ -322,9 +383,14 @@ module.exports = class {
     #doTeamSelection(channel, team) {
         this.gamestage = 1;
         this.teams[team].interact = new MessageInteractable((reaction => {
+            if(this.staff_alert != null) {
+                clearTimeout(this.staff_alert);
+                this.staff_alert = null;
+            }
+
             let emojies = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
             reaction.message.reactions.removeAll();
-            reaction.message.guild.members.fetch(this.players[emojies.indexOf(reaction._emoji.name)]).then(member => {
+            reaction.message.guild.members.fetch(this.players_unassigned[emojies.indexOf(reaction._emoji.name)]).then(member => {
                 this.players_unassigned = removeItemAll(this.players_unassigned, member.id);
                 this.teams[team].interact.setActive(false);
                 this.teams[team].interact.doRenderAction(this.players_unassigned);
@@ -390,8 +456,23 @@ module.exports = class {
     #doTeamNameSelection(channel, team) {
 
         // TODO Find a good way to name teams. For now can be done by 10 Mans staff
+        channel.send(
+            new MessageEmbed().setColor('#00a8ff')
+                .setTitle(`Creativity time`)
+                .setDescription("Please think of a 1 word team name that is less than 7 characters.")
+                .setFooter("Inappropriate team names will result in suspension from this event"));
 
-        channel.delete()
+        app.selfDistructiveChannelListener[channel.id] = (message)=>{
+            channel.send(`You want your team name to be... ${message.content.split(' ')[0].substr(0,7)}? Ok i guess... Let me get this checked real quick <@&${app.config.guilds[channel.guild.id].supportRole}>`);
+
+            setTimeout(() => {
+                this.#doSelectionCleanup(channel,team);
+            }, 6000);
+
+        }
+    }
+
+    #doSelectionCleanup(channel, team) {
 
         this.channels['main'].send(
             new MessageEmbed().setColor(team===0?'#FF7D7D':'#7D9FFF')
@@ -455,8 +536,8 @@ function createOverrideFromlist(players, guild) {
             allow: ['SEND_MESSAGES', 'CONNECT', 'SPEAK', 'USE_VAD', 'READ_MESSAGE_HISTORY']
         },
         {
-            id: guild.roles.cache.find(role => role.name === "Event Staff"),
-            allow: ['VIEW_CHANNEL', 'PRIORITY_SPEAKER']
+            id: guild.roles.cache.find(role => role.id === app.config.guilds[guild.id].supportRole),
+            allow: ['VIEW_CHANNEL', 'PRIORITY_SPEAKER', 'ADMINISTRATOR']
         },
         {
             id: app.discordClient.user.id,

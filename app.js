@@ -12,6 +12,8 @@ exports.integration = new (require('./bin/lib/LiveData'))();
 exports.queuemap = {};
 exports.gamemap = [];
 
+exports.selfDistructiveChannelListener = {};
+
 const commandManager = new (require('./bin/managers/CommandManager'))(Discord, client, exports.config);
 
 client.on('ready', ()=>{
@@ -19,6 +21,14 @@ client.on('ready', ()=>{
 });
 
 client.on('message', (message)=>{
+
+    if(message.author.id === client.user.id)
+        return;
+
+    if(exports.selfDistructiveChannelListener[message.channel.id] !== undefined) {
+        exports.selfDistructiveChannelListener[message.channel.id](message);
+        delete exports.selfDistructiveChannelListener[message.channel.id];
+    }
 
     if(message.content.startsWith(exports.config.commandManager.prefix))
         commandManager.handle(message);
@@ -37,7 +47,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
     console.log(interaction);
 });
 
-client.login(exports.config.token).then(r => {
+client.login(exports.config.tokens.discord).then(r => {
     client.channels.fetch(exports.config.debugging.screaming_channel).then(channel => {
         channel.send(new Discord.MessageEmbed().setColor("GREEN").addField("Bot status","The bot has started."));
     })

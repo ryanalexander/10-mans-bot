@@ -46,6 +46,34 @@ module.exports = class extends require('../lib/Command') {
 
     queueManager() {
         switch(this.getArgs().length>2?this.getArgs()[2].toUpperCase():""){
+            case "SCHEDULE":
+                let embed = new MessageEmbed().setColor("BLURPLE").setTitle("Countdown");
+                let time = this.getArgs()[3] * 60;
+                var mind = time % (60 * 60);
+                var minutes = Math.floor(mind / 60);
+
+                var secd = mind % 60;
+                var seconds = Math.ceil(secd);
+                embed.setDescription(`The 10 Mans queue will open in ${minutes} minutes and ${seconds} seconds`);
+                this.getChannel().send(embed).then(message => {
+                    setInterval(()=>{
+                        time=time-2;
+                        mind = time % (60 * 60);
+                        minutes = Math.floor(mind / 60);
+                        secd = mind % 60;
+                        seconds = Math.ceil(secd);
+                        embed.setDescription(`The 10 Mans queue will open in ${minutes} minutes and ${seconds} seconds`);
+                        message.edit(embed);
+
+                        if(time <= 0){
+                            message.delete();
+                            this.getChannel().send(`<@&700521665544716408>`).then(message => message.delete());
+                            clearInterval(this);
+                            this.createQueue();
+                        }
+                    },2000);
+                })
+                break;
             case "OPEN":
             case "START":
             case "CREATE":
@@ -125,13 +153,21 @@ module.exports = class extends require('../lib/Command') {
             case "DELETE":
             case "TERMINATE":
             case "END":
-                game.cancel(game.gamestage > 2);
+                game.cancel(this.getArgs().length>3?this.getArgs()[3].toUpperCase()==="-S":false);
                 break;
             case "REMPLAYER":
                 game.removePlayer(this.getArg().mentions.members.first().id);
                 break;
             case "ADDPLAYER":
                 game.addPlayer(this.getArg().mentions.members.first().id);
+                break;
+            case "SETCAPTAIN":
+                this.getArg().reply(new MessageEmbed()
+                    .setColor('BLURPLE')
+                    .setTitle('Team captain set')
+                    .setDescription(`${game.teams[this.getArgs()[3]-1].name} captain has been set as <@${this.getArg().mentions.members.first().id}>`)
+                );
+                game.setCaptain(this.getArgs()[3]-1, this.getArg().mentions.members.first());
                 break;
             case "GETSUB":
                 game.getSub(game.channels['staff']);
@@ -141,6 +177,9 @@ module.exports = class extends require('../lib/Command') {
                 break;
             case "SETCASTERS":
                 game.setCasters(this.getArg().mentions.members)
+                break;
+            case "FORCESTAGE":
+                game.setStage(this.getArgs()[3])
                 break;
             default:
                 this.getChannel().send("Unknown arguments");

@@ -5,9 +5,9 @@ const Game = require("../lib/Game");
 
 module.exports = class extends require('../lib/Command') {
     async execute() {
-        let roles = ["EVENT_STAFF","EVENT_CASTER","MANAGEMENT"]
+        let roles = ["EVENT_STAFF","EVENT_CASTER","MANAGEMENT"];
 
-        let member = this.getArg().mentions.members.first()!=null?this.getArg().mentions.members.first():this.getSender();
+        let member = (this.getArg().mentions.members.first()!=null?this.getArg().mentions.members.first():{user:this.getSender()});
         let player = await app.database.getPlayerOrCreate(member.user.id)
         let caster = (await app.database.getCasterByPlayer(player.snowflake)).first();
         let staff = (await app.database.getStaffByPlayer(player.snowflake)).first();

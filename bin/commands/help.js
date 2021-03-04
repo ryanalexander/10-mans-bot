@@ -8,6 +8,10 @@ module.exports = class extends Command {
 
         if(this.getArgs().length > 1) {
             switch (this.getArgs()[1].toUpperCase()){
+                case "CONNTEST":
+                    embed.addField("Stelch Bigdata", app.database.client.getState().getConnectedHosts().length);
+                    embed.addField("Stelch Neuron", app.integration.conn.readyState);
+                    break;
                 case "PING":
                     embed.addField("Pong!", (new Date()).getTime() + " | " + this.getArg().createdTimestamp)
                     break;

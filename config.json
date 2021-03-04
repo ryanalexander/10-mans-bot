@@ -1,5 +1,8 @@
 {
-  "token": "Njk4NjUxOTI4NzExNzkwNjc0.XpI8oA.3HU9AkAo7nXbkTJ9j4ESUXZtE7U",
+  "tokens": {
+    "discord": "Njk4NjUxOTI4NzExNzkwNjc0.XpI8oA.3HU9AkAo7nXbkTJ9j4ESUXZtE7U",
+    "stelch": "5cf8deb3-3358-4858-9bc6-ad42e029fd2b"
+  },
   "debugging": {
     "debugging": true,
     "screaming_channel": "801438430172938291",
@@ -27,6 +30,7 @@
     "537887361292304385": {
       "type": "client",
       "queueChannel": "749051814795804762",
+      "supportRole": "749177452689096746",
       "commandChannels": [
         "602127986422054953",
         "780369768037220362",
@@ -70,6 +74,7 @@
     "767649315757752331": {
       "type": "client",
       "queueChannel": "796977734400213003",
+      "supportRole": "772519048251703356",
       "captainPriority": [
         {
           "type": "ROLE",
