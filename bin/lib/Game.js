@@ -5,6 +5,16 @@ const MessageInteractable = require('./MessageInteractable');
 
 const GameStage = ['INITIALIZING', 'PLAYER_SELECTION', 'MAP_SELECTION', 'WAITING_FOR_CASTER', 'IN_GAME', 'POST_GAME', 'FINISHED'];
 
+const lang = {
+    TEAM_NAME_SELECTED: [
+        "You want your team name to be %s... Um ok... I guess i can do that",
+        "So you call yourself %s, noice!",
+        "Of all the possibilities you choose %s... k",
+        `There is a 1/5 chance of getting this message, and a 1/∞ chance of someone thinking of a name as good as %s`,
+        "With a name like %s, everyone is going to run in fear! I think you're going to win"
+    ]
+};
+
 module.exports = class {
 
     id = Object.keys(app.gamemap).length;
@@ -372,7 +382,7 @@ module.exports = class {
                     .addField("Add player",".game this addplayer {tag}")
                     .addField("Set player team",".game this setteam {tag} {1 - 2}")
                     .addField("Add next player",".game this getsub")
-                    .addField("Set team name",".game this setname {1 -2} {name (max 1 word)}")
+                    .addField("Set team name",".game this setname {1 -2} {name}")
                     .addField("Set Casters",".game this setcasters {tag all casters...}")
                 );
             });
@@ -453,26 +463,46 @@ module.exports = class {
         });
     }
 
-    #doTeamNameSelection(channel, team) {
+    async #doTeamNameSelection(channel, team) {
 
         // TODO Find a good way to name teams. For now can be done by 10 Mans staff
         channel.send(
             new MessageEmbed().setColor('#00a8ff')
                 .setTitle(`Creativity time`)
-                .setDescription("Please think of a 1 word team name that is less than 7 characters.")
+                .setDescription("Please think of a team name that is less than 14 characters.")
                 .setFooter("Inappropriate team names will result in suspension from this event"));
 
         app.selfDistructiveChannelListener[channel.id] = (message)=>{
-            channel.send(`You want your team name to be... ${message.content.split(' ')[0].substr(0,7)}? Ok i guess... Let me get this checked real quick <@&${app.config.guilds[channel.guild.id].supportRole}>`);
+            let name = message.content.substr(0,14);
+            channel.send(lang.TEAM_NAME_SELECTED[Math.floor(Math.random() * Math.floor(lang.TEAM_NAME_SELECTED.length))].replace('%s',`**${name}**`))
 
-            setTimeout(() => {
+            setTimeout(()=>{
+                this.setTeamName(team, name);
                 this.#doSelectionCleanup(channel,team);
-            }, 6000);
-
+            },5000);
         }
     }
 
     #doSelectionCleanup(channel, team) {
+
+        let options = [
+            "Want to report a player?",
+            "Need a staff member?"
+        ];
+        new MessageInteractable((reaction)=>{
+            let emojies = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+            let option = options[emojies.indexOf(reaction._emoji.name)];
+            switch(option) {
+                default:
+                    channel.send("Please direct message someone with the Event Staff role");
+            }
+        },{
+            title: ["Support Panel"],
+            color: '00a8ff',
+            defaultsActive: true,
+            modules: ['OPTION_SELECT'],
+            fields: options,
+        }, channel, ()=>{});
 
         this.channels['main'].send(
             new MessageEmbed().setColor(team===0?'#FF7D7D':'#7D9FFF')
@@ -537,6 +567,10 @@ function createOverrideFromlist(players, guild) {
         },
         {
             id: guild.roles.cache.find(role => role.id === app.config.guilds[guild.id].supportRole),
+            allow: ['VIEW_CHANNEL', 'PRIORITY_SPEAKER', 'ADMINISTRATOR']
+        },
+        {
+            id: guild.roles.cache.find(role => role.id === "554906031696773121"),
             allow: ['VIEW_CHANNEL', 'PRIORITY_SPEAKER', 'ADMINISTRATOR']
         },
         {

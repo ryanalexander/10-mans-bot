@@ -46,34 +46,6 @@ module.exports = class extends require('../lib/Command') {
 
     queueManager() {
         switch(this.getArgs().length>2?this.getArgs()[2].toUpperCase():""){
-            case "SCHEDULE":
-                let embed = new MessageEmbed().setColor("BLURPLE").setTitle("Countdown");
-                let time = this.getArgs()[3] * 60;
-                var mind = time % (60 * 60);
-                var minutes = Math.floor(mind / 60);
-
-                var secd = mind % 60;
-                var seconds = Math.ceil(secd);
-                embed.setDescription(`The 10 Mans queue will open in ${minutes} minutes and ${seconds} seconds`);
-                this.getChannel().send(embed).then(message => {
-                    setInterval(()=>{
-                        time=time-2;
-                        mind = time % (60 * 60);
-                        minutes = Math.floor(mind / 60);
-                        secd = mind % 60;
-                        seconds = Math.ceil(secd);
-                        embed.setDescription(`The 10 Mans queue will open in ${minutes} minutes and ${seconds} seconds`);
-                        message.edit(embed);
-
-                        if(time <= 0){
-                            message.delete();
-                            this.getChannel().send(`<@&700521665544716408>`).then(message => message.delete());
-                            clearInterval(this);
-                            this.createQueue();
-                        }
-                    },2000);
-                })
-                break;
             case "OPEN":
             case "START":
             case "CREATE":
@@ -91,6 +63,10 @@ module.exports = class extends require('../lib/Command') {
                 this.closeQueue();
                 break;
             case "ADDPLAYER":
+                this.addQueuePlayer();
+                break;
+            case "REMPLAYER":
+                this.removeQueuePlayer();
                 break;
             default:
                 this.helpMenu("QUEUE");
@@ -122,6 +98,14 @@ module.exports = class extends require('../lib/Command') {
                     {
                         name: "stop",
                         value: "Close queue and prevent new players joining"
+                    },
+                    {
+                        name: "addplayer [-p]",
+                        value: "Add player to queue. -p will add to top"
+                    },
+                    {
+                        name: "remplayer",
+                        value: "Remove player from queue"
                     }
                 ]).setColor("BLURPLE"));
                 break;
@@ -144,7 +128,10 @@ module.exports = class extends require('../lib/Command') {
                     .setTitle('Team name set')
                     .setDescription(`${game.teams[this.getArgs()[3]-1].name} has been renamed to ${this.getArgs()[4]}`)
                 );
-                game.setTeamName(this.getArgs()[3]-1, this.getArgs()[4]);
+                let name = this.getArg().content.split(' ');
+                name.shift();
+                name = name.join(" ").substr(1,14);
+                game.setTeamName(this.getArgs()[3]-1, name);
                 break;
             case "STOP":
             case "CLOSE":
@@ -156,10 +143,12 @@ module.exports = class extends require('../lib/Command') {
                 game.cancel(this.getArgs().length>3?this.getArgs()[3].toUpperCase()==="-S":false);
                 break;
             case "REMPLAYER":
+                if(this.getArg().mentions.members.first() !== undefined)
                 game.removePlayer(this.getArg().mentions.members.first().id);
                 break;
             case "ADDPLAYER":
-                game.addPlayer(this.getArg().mentions.members.first().id);
+                if(this.getArg().mentions.members.first() !== undefined)
+                    game.addPlayer(this.getArg().mentions.members.first().id);
                 break;
             case "SETCAPTAIN":
                 this.getArg().reply(new MessageEmbed()
@@ -218,6 +207,25 @@ module.exports = class extends require('../lib/Command') {
             return;
 
         this.getCommandManager().getApplication().queuemap[guild.id] = new GuildQueue(guild, this.getCommandManager());
+    }
+
+    addQueuePlayer() {
+        let guild = this.getGuild();
+        let first = this.getArg().content.toLowerCase().indexOf("-p")>-1;
+        if(this.getCommandManager().getApplication().queuemap[guild.id] !== undefined){
+            if(first) {
+                this.getCommandManager().getApplication().queuemap[guild.id].queueMembers.unshift(this.getMentions('MEMBERS').first().id);
+            }else {
+                this.getCommandManager().getApplication().queuemap[guild.id].queueMembers.push(this.getMentions('MEMBERS').first().id);
+            }
+        }
+    }
+
+    removeQueuePlayer() {
+        let guild = this.getGuild();
+        if(this.getCommandManager().getApplication().queuemap[guild.id] !== undefined){
+            this.getCommandManager().getApplication().queuemap[guild.id].removeFromQueue(this.getMentions('MEMBERS').first().id);
+        }
     }
 
     closeQueue() {

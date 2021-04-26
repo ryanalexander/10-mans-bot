@@ -105,6 +105,10 @@ module.exports = class {
         return await this.getPlayerBySnowflake((await this.client.execute(queries.RIOT_BY_ID, [riotid, tagline], {prepare: true})).first()['player_snowflake']);
     }
 
+    async getPlayerFirstGame(snowflake) {
+        return await this.client.execute(`SELECT * FROM game_players WHERE player_snowflake = '${snowflake} LIMIT 1;'`)
+    }
+
     async getPunishments(player) {
         return await this.client.execute(queries.PUNISHMENT_BY_PLAYER, [player.snowflake], {prepare: true});
     }
@@ -186,9 +190,10 @@ module.exports = class {
 
         for(var i = 0; i < game.players.length; i++){
             let player_obj = await this.getPlayerOrCreate(game.players[i]);
+            let firstGame = await this.getPlayerFirstGame(player_obj.snowflake);
             q.push({
-                query: 'INSERT INTO game_players (snowflake, acs, agent, assists, deaths, defuses, first_bloods, game_snowflake, kills, plants, player_snowflake, team) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                params: [app.snowflake.generateSnowflake('SCORE_ENTRY'), 0, 'UNKNOWN', 0, 0, 0, 0, game.snowflake, 0, 0, player_obj.snowflake, -1]
+                query: 'INSERT INTO game_players (snowflake, acs, agent, assists, deaths, defuses, first_bloods, first_game, game_snowflake, kills, plants, player_snowflake, team) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                params: [app.snowflake.generateSnowflake('SCORE_ENTRY'), 0, 'UNKNOWN', 0, 0, 0, 0, (firstGame === null || firstGame === undefined), game.snowflake, 0, 0, player_obj.snowflake, -1]
             })
         }
         await this.client.batch(q, {prepare: true});

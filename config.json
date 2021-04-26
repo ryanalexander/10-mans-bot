@@ -23,6 +23,23 @@
     "user": "10mansbot",
     "pass": "{password}"
   },
+  "maps": {
+    "ASCENT": {
+      "disabled": false
+    },
+    "HAVEN": {
+      "disabled": false
+    },
+    "BIND": {
+      "disabled": false
+    },
+    "SPLIT": {
+      "disabled": false
+    },
+    "ICEBOX": {
+      "disabled": false
+    }
+  },
   "guilds": {
     "746962575710879765" : {
       "type": "manage"

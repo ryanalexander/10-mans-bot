@@ -10,8 +10,8 @@ module.exports = class {
      * @param {CommandManager} commandManager instance of CommandManager for project
      * @param {GuildMember} member Discord.JS Guild Member
      * @param {GuildChannel} channel Discord.JS Channel Object
-     * @param {Message} cmd Discord.JS Message Object
-     * @param {String} arg Issued command in text format
+     * @param {String} cmd Discord.JS Message Object
+     * @param {Message} arg Issued command in text format
      * @param {String[]} args Array of arguments after command
      * @param {Object} config Configuration for Guild
      */
@@ -77,12 +77,12 @@ module.exports = class {
     getMentions(type) {
         switch(type.toUpperCase()) {
             case 'ROLE':
-                return this.cmd.mentions.roles;
+                return this.arg.mentions.roles;
             case 'USERS':
             case 'MEMBERS':
-                return this.cmd.mentions.members;
+                return this.arg.mentions.members;
             case 'CHANNELS':
-                return this.cmd.mentions.channels;
+                return this.arg.mentions.channels;
             default:
                 return [];
         }

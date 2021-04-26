@@ -8,7 +8,7 @@ module.exports = class {
     }
 
     async init() {
-        this.conn = new WebSocket("wss://10s.oce.gg/live");
+        this.conn = new WebSocket("wss://ext-ocegg.stelch.net/live");
         this.conn.addEventListener('open',()=>{
             this.conn.addEventListener('message', (event)=>{
                 let data = JSON.parse(event.data);
