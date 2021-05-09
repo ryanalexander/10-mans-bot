@@ -1,5 +1,5 @@
 
-module.exports = class extends require('../lib/Command') {
+module.exports = class extends require('../../lib/Command') {
 
     execute() {
         if(this.getSender().hasPermission("DEV")){

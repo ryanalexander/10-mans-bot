@@ -28,7 +28,8 @@ module.exports = class {
     players = [];
     players_unassigned = [];
     epoch = 0;
-    map_pool = ['ASCENT', 'HAVEN', 'BIND', 'SPLIT', 'ICEBOX'];
+    map_pool = [];
+
     teams = [];
 
     staff_alert = 0;
@@ -46,6 +47,13 @@ module.exports = class {
         this.guild = guild;
         this.players = players;
         this.players_unassigned = [...players];
+
+        this.map_pool = [];
+        Object.keys(app.config.maps).forEach(map => {
+            let mapConf = app.config.maps[map];
+            if(mapConf.disabled) return;
+            this.map_pool.push(map);
+        })
 
         // Determine Captains
         let captains = this.#determineCaptains();
@@ -68,7 +76,7 @@ module.exports = class {
             players: [captains[1].id]
         });
 
-        app.database.registerGame(this).then(r => {
+        app.database.registerPreGame(this).then(r => {
             this.teams[0].snowflake = r['team0']
             this.teams[1].snowflake = r['team1']
             console.log(`Game ${this.snowflake} has been pushed to db`)
@@ -121,7 +129,7 @@ module.exports = class {
                 // Give queue priority for 5 minutes
                 app.queuemap[this.guild['id']].priority.push({
                     player: player,
-                    expires: (new Date()).getTime(60000)
+                    expires: (new Date()).getTime()+60000
                 });
 
                 // Direct message player
@@ -185,6 +193,8 @@ module.exports = class {
         this.players.push(player);
         this.players_unassigned.push(player);
 
+        app.database.addPlayerToGame(this.snowflake, player);
+
         app.discordClient.channels.fetch(this.category).then(channel =>
             channel.overwritePermissions(createOverrideFromlist(this.players, this.guild))
         )
@@ -192,6 +202,9 @@ module.exports = class {
     removePlayer(player) {
         this.players = removeItemAll(this.players, player);
         this.players_unassigned = removeItemAll(this.players_unassigned, player);
+
+        app.database.removePlayerFromGame(this.snowflake, player);
+
         let team = this.getTeam(player);
         if(team !== null) {
             if(team.captain.id === player){
@@ -489,6 +502,7 @@ module.exports = class {
             "Want to report a player?",
             "Need a staff member?"
         ];
+
         new MessageInteractable((reaction)=>{
             let emojies = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
             let option = options[emojies.indexOf(reaction._emoji.name)];

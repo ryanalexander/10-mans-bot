@@ -7,7 +7,7 @@ exports.discordClient = client;
 
 exports.snowflake = new (require('./bin/lib/Snowflake'))(0);
 exports.database = new (require('./bin/lib/Database'))();
-exports.config = JSON.parse(fs.readFileSync("./config.json").toString('utf-8'));
+exports.config = require("./config.json");
 exports.integration = new (require('./bin/lib/LiveData'))();
 exports.queuemap = {};
 exports.gamemap = [];

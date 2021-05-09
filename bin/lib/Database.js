@@ -106,7 +106,7 @@ module.exports = class {
     }
 
     async getPlayerFirstGame(snowflake) {
-        return await this.client.execute(`SELECT * FROM game_players WHERE player_snowflake = '${snowflake} LIMIT 1;'`)
+        return await this.client.execute(`SELECT * FROM game_players WHERE player_snowflake = ${snowflake} LIMIT 1 ALLOW FILTERING;`)
     }
 
     async getPunishments(player) {
@@ -173,7 +173,7 @@ module.exports = class {
         this.client.execute(queries.UPDATE.SET_GAME_FINISHED, [new Date().getTime(), game.snowflake], {prepare: true});
     }
 
-    async registerGame(game) {
+    async registerPreGame(game) {
         const q = [
             {
                 query: 'INSERT INTO games (snowflake, finished, map, started) values (?, ?, ?, ?);',
@@ -193,12 +193,28 @@ module.exports = class {
             let firstGame = await this.getPlayerFirstGame(player_obj.snowflake);
             q.push({
                 query: 'INSERT INTO game_players (snowflake, acs, agent, assists, deaths, defuses, first_bloods, first_game, game_snowflake, kills, plants, player_snowflake, team) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                params: [app.snowflake.generateSnowflake('SCORE_ENTRY'), 0, 'UNKNOWN', 0, 0, 0, 0, (firstGame === null || firstGame === undefined), game.snowflake, 0, 0, player_obj.snowflake, -1]
+                params: [
+                    app.snowflake.generateSnowflake('SCORE_ENTRY'),0,'UNKNOWN',0,0,0,0,(firstGame === null || firstGame === undefined),Number(game.snowflake),0,0,Number(player_obj.snowflake),-1
+                ]
             })
         }
         await this.client.batch(q, {prepare: true});
-
         return results;
+    }
+
+    async addPlayerToGame(matchSnowflake, playerSnowflake) {
+        let player_obj = await this.getPlayerOrCreate(playerSnowflake);
+        let firstGame = await this.getPlayerFirstGame(player_obj.snowflake);
+        await this.client.execute(`INSERT INTO game_players (snowflake, acs, agent, assists, deaths, defuses, first_bloods, first_game, game_snowflake, kills, plants, player_snowflake, team) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,[app.snowflake.generateSnowflake('SCORE_ENTRY'), 0, 'UNKNOWN', 0, 0, 0, 0, (firstGame === null || firstGame === undefined), matchSnowflake, 0, 0, player_obj.snowflake, -1], {prepare: true})
+    }
+
+    async removePlayerFromGame(matchSnowflake, playerSnowflake) {
+        let player_obj = await this.getPlayerOrCreate(playerSnowflake);
+        await this.client.execute(`DELETE FROM game_players WHERE game_snowflake = ? AND player_snowflake = ?;`, [matchSnowflake, player_obj.snowflake])
+    }
+
+    async getMatches(snowflakeList) {
+        return (await this.client.execute(`SELECT * FROM games WHERE snowflake in (${snowflakeList.join(", ")}) ALLOW FILTERING;`)).rows;
     }
 
     /**

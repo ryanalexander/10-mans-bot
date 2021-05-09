@@ -32,13 +32,13 @@ module.exports = class {
             });
         });
         this.conn.addEventListener('close', ()=>{
-            console.log('Reconnecting to websocket');
+            console.log('Reconnecting to websocket [DISCONNECTED]');
             setTimeout(()=>{this.init()}, 5000);
         });
         this.conn.addEventListener('error', (e)=>{
             switch(e.code){
                 case 'ECONNREFUSED':
-                    console.log('Reconnecting to websocket');
+                    console.log('Reconnecting to websocket [REFUSED]');
                     setTimeout(()=>{this.init()}, 5000);
                     break;
             }

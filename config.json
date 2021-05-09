@@ -12,6 +12,13 @@
     "317236321099710467",
     "264184409047957514"
   ],
+  "personalization": {
+    "colors": {
+      "inform_basic": "#3d82cc",
+      "inform_error": "#cc3d3d",
+      "inform_dev": "#42f54b"
+    }
+  },
   "commandManager": {
     "prefix": "."
   },
@@ -25,29 +32,40 @@
   },
   "maps": {
     "ASCENT": {
-      "disabled": false
+      "disabled": false,
+      "requireUnanimous": false
     },
     "HAVEN": {
-      "disabled": false
+      "disabled": false,
+      "requireUnanimous": false
     },
     "BIND": {
-      "disabled": false
+      "disabled": false,
+      "requireUnanimous": false
     },
     "SPLIT": {
-      "disabled": false
+      "disabled": false,
+      "requireUnanimous": false
     },
     "ICEBOX": {
-      "disabled": false
+      "disabled": false,
+      "requireUnanimous": false
+    },
+    "BREEZE": {
+      "disabled": false,
+      "requireUnanimous": true
     }
   },
   "guilds": {
     "746962575710879765" : {
-      "type": "manage"
+      "type": "manage",
+      "webSupport": true
     },
     "537887361292304385": {
       "type": "client",
       "queueChannel": "749051814795804762",
       "supportRole": "749177452689096746",
+      "webSupport": false,
       "commandChannels": [
         "602127986422054953",
         "780369768037220362",
@@ -92,6 +110,7 @@
       "type": "client",
       "queueChannel": "796977734400213003",
       "supportRole": "772519048251703356",
+      "webSupport": true,
       "captainPriority": [
         {
           "type": "ROLE",

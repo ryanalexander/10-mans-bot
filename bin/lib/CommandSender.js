@@ -51,6 +51,9 @@ module.exports = class {
     hasRoleByName(roleName) {
         return this.member.roles.cache.find(r => r.name === roleName);
     }
+    hasRoleById(roleId) {
+        return this.member.roles.cache.find(r => r.id === roleId);
+    }
 
     /**
      * Send a direct message to member
