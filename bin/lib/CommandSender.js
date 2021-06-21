@@ -55,6 +55,10 @@ module.exports = class {
         return this.member.roles.cache.find(r => r.id === roleId);
     }
 
+    getSnowflake() {
+        return this.member.id;
+    }
+
     /**
      * Send a direct message to member
      * @param {String} message Message to be sent

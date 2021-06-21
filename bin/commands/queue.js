@@ -61,6 +61,13 @@ module.exports = class extends Command {
                 }
             }
         },
+        ADD_TEST_PLAYERS: (instance, embed)=>{
+            let guild = instance.getGuild();
+            let ids = ["317236321099710467","650161495354638347","718337884029190145","822088580335271956","421652646294716427","431056428036259851"];
+            instance.getCommandManager().getApplication().queuemap[guild.id].queueMembers.push(...ids);
+            embed.setDescription(`Added ${ids.length} test account to queue`);
+            embed.setColor(app.config.personalization.colors.inform_dev);
+        },
         REMOVE_QUEUE_PLAYER: (instance, embed) => {
             let guild = instance.getGuild();
             let target = null;
@@ -111,6 +118,9 @@ module.exports = class extends Command {
                     break;
                 case "REMPLAYER":
                     module.exports.actions.REMOVE_QUEUE_PLAYER(this, embed);
+                    break;
+                case "ADDTEST":
+                    module.exports.actions.ADD_TEST_PLAYERS(this, embed);
                     break;
                 default:
                     embed.setColor(app.config.personalization.colors.inform_error);

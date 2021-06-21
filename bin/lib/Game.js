@@ -56,7 +56,7 @@ module.exports = class {
         })
 
         // Determine Captains
-        let captains = this.#determineCaptains();
+        let captains = this.#determineCaptains(true);
 
         this.players_unassigned = removeItemAll(this.players_unassigned, captains[0].id);
         this.players_unassigned = removeItemAll(this.players_unassigned, captains[1].id);
@@ -432,13 +432,45 @@ module.exports = class {
                 }
             })
         }), {
-            title: ["Select your players", "Waiting for other captain..."],
+            title: ["Team selection (Your pick)", "Team selection (Waiting on other captain)"],
             color: '00a8ff',
             defaultsActive: team === 0,
             fields: this.players_unassigned,
             modules: ['GUILDMEMBER_SELECT']
         }, channel, ()=>{
             this.#doMapSelection(channel, team);
+        }, button => {
+            let parts = button.id.split("-");
+            let action = parts[0];
+            let user = parts[1];
+
+            switch (action) {
+                case "SEL":
+                    button.defer();
+                    if(this.staff_alert != null) {
+                        clearTimeout(this.staff_alert);
+                        this.staff_alert = null;
+                    }
+                    button.message.guild.members.fetch(user).then(member => {
+                        this.players_unassigned = removeItemAll(this.players_unassigned, member.id);
+                        this.teams[team].interact.setActive(false);
+                        this.teams[team].interact.doRenderAction(this.players_unassigned);
+                        this.teams[team===0?1:0].interact.setActive(true);
+                        this.teams[team===0?1:0].interact.doRenderAction(this.players_unassigned);
+                        this.setTeam(member.id, team);
+
+                        if(this.players_unassigned.length <= 1) {
+                            this.teams[0].interact.cancel();
+                            this.teams[1].interact.cancel();
+                            this.gamestage = 2;
+
+                            button.message.guild.members.fetch(this.players_unassigned[0]).then(member => {
+                                this.setTeam(member.id, team===0?1:0);
+                            });
+                        }
+                    })
+                    break;
+            }
         });
     }
 
@@ -541,11 +573,12 @@ module.exports = class {
      * Decide captains depending on their ranks and other factors
      * @returns {GuildPlayer[]}
      */
-    #determineCaptains() {
+    #determineCaptains(honorBlacklist) {
 
         // Group players into ranks
         let rank_grouping = {};
         let captains = [];
+        let captainBlacklist = [...app.queuemap[this.guild['id']].nonCaptains];
         // Check sizes of ranks
         // Pick highest 2 players as captains
 
@@ -563,11 +596,14 @@ module.exports = class {
 
         rank_names.forEach(rank =>
             rank_grouping[rank].forEach(player => {
-                if (captains.length < 2){
+                if (captains.length < 2 && (honorBlacklist?captainBlacklist.indexOf(player.id)<=-1:true)){
                     captains.push(player);
                 }
             })
         );
+
+        if(captains.length < 2)
+            captains = this.#determineCaptains(false);
 
         return captains;
     }

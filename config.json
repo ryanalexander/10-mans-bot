@@ -66,11 +66,6 @@
       "queueChannel": "749051814795804762",
       "supportRole": "749177452689096746",
       "webSupport": false,
-      "commandChannels": [
-        "602127986422054953",
-        "780369768037220362",
-        "702877894665437296"
-      ],
       "captainPriority": [
         {
           "type": "ROLE",
@@ -78,7 +73,7 @@
         },
         {
           "type": "ROLE",
-          "name": "Event Staff"
+          "name": "Event Hands"
         },
         {
           "type": "ROLE",

@@ -1,8 +1,10 @@
-
 const Discord = require("discord.js");
 const fs = require("fs");
 
-const client = new Discord.Client;
+const client = new Discord.Client({
+    intents: Discord.Intents.ALL
+});
+const disbut = require('./bin/lib/discord-buttons/src/index')(client);
 exports.discordClient = client;
 
 exports.snowflake = new (require('./bin/lib/Snowflake'))(0);
@@ -18,6 +20,23 @@ const commandManager = new (require('./bin/managers/CommandManager'))(Discord, c
 
 client.on('ready', ()=>{
     console.log(`Client is ready`);
+/*
+TODO - Add slashcommand support
+    client.guilds.forEach(guild => {
+        if(exports.config.guilds[guild.id] !== undefined) {
+            guild.commands.create({
+                name:"game",
+                description: "Manage game data",
+                options: [
+                    {
+                        type:
+                    }
+                ],
+                defaultPermission: false
+            })
+        }
+    })
+ */
 });
 
 client.on('message', (message)=>{
@@ -40,15 +59,11 @@ client.on('messageReactionAdd', (reaction, user)=>{
         exports.queuemap[reaction.message.guild.id].handleReaction(reaction, user);
 });
 
-client.ws.on('INTERACTION_CREATE', async interaction => {
-    const command = interaction.data.name.toLowerCase();
-    const args = interaction.data.options;
-
-    console.log(interaction);
+client.on('clickButton', async (button) => {
+    if(button.clicker.user === client.user)return;
+    if(exports.queuemap[button.guild.id] !== undefined && exports.queuemap[button.guild.id].message.id === button.message.id) {
+        exports.queuemap[button.guild.id].handleButton(button.id, button.clicker.user, button);
+    }
 });
 
-client.login(exports.config.tokens.discord).then(r => {
-    client.channels.fetch(exports.config.debugging.screaming_channel).then(channel => {
-        channel.send(new Discord.MessageEmbed().setColor("GREEN").addField("Bot status","The bot has started."));
-    })
-});
+client.login(exports.config.tokens.discord)

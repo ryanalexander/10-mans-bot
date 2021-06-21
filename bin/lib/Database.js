@@ -30,6 +30,10 @@ const queries = {
     PUNISHMENT_BY_SNOWFLAKE: 'SELECT * FROM punishments WHERE player = ? ALLOW FILTERING;',
     EXPIRED_ACTIVE_PUNISHMENTS: 'SELECT * FROM punishments WHERE active = true AND expires < ? ALLOW FILTERING;',
 
+    PLAYERS_BY_TEAM: 'SELECT * FROM team_players WHERE team = ? ALLOW FILTERING;',
+    TEAM_BY_PLAYER: 'SELECT * FROM team_players WHERE player = ? LIMIT 1 ALLOW FILTERING;',
+    TEAM_BY_ID: 'SELECT * FROM teams WHERE id = ? ALLOW FILTERING;',
+
     INSERT: {
         REGISTER_EVENT: 'INSERT INTO events (snowflake, cancelled, time, title) VALUES (?, ?, ?, ?)',
 
